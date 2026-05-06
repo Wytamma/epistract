@@ -1,0 +1,28 @@
+[workspace]
+name = "epistract"
+authors = ["William Wirth <william@example.com>"]
+channels = ["conda-forge"]
+platforms = ["osx-arm64", "osx-64", "linux-64"]
+
+[activation.env]
+R_LIBS_USER = "$PIXI_PROJECT_ROOT/.pixi/R/library"
+
+[dependencies]
+r-base = ">=4.5,<4.7"
+r-ellmer = ">=0.4.0,<0.5"
+r-rlang = ">=1.1.6,<2"
+r-tibble = ">=3.3.0,<4"
+r-vctrs = ">=0.6.5,<0.8"
+r-testthat = ">=3.2.0,<4"
+r-roxygen2 = ">=7.3.0,<8"
+r-knitr = ">=1.50,<2"
+r-rmarkdown = ">=2.29,<3"
+
+[tasks]
+r = "R"
+ensure-r-lib = "mkdir -p \"$R_LIBS_USER\""
+install-ollamar = { cmd = "Rscript -e 'dir.create(Sys.getenv(\"R_LIBS_USER\"), recursive = TRUE, showWarnings = FALSE); if (!requireNamespace(\"ollamar\", quietly = TRUE)) install.packages(\"ollamar\", repos = \"https://cloud.r-project.org\")'", depends-on = ["ensure-r-lib"] }
+docs = { cmd = "Rscript -e 'roxygen2::roxygenise()'", depends-on = ["install-ollamar"] }
+dev-install = { cmd = "R CMD INSTALL .", depends-on = ["install-ollamar"] }
+test = { cmd = "Rscript -e 'library(epistract); library(testthat); source(\"tests/testthat/test-flatten.R\")'", depends-on = ["dev-install"] }
+check = { cmd = "rm -rf .buildcheck && mkdir -p .buildcheck/epistract && rsync -a --delete --exclude '.buildcheck' --exclude '.pixi' --exclude '..Rcheck' --exclude '*.tar.gz' --exclude '.git' ./ .buildcheck/epistract/ && cd .buildcheck/epistract && R CMD build . && R CMD check epistract_*.tar.gz --no-manual", depends-on = ["docs"] }

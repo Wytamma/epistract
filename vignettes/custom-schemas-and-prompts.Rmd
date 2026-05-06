@@ -1,0 +1,102 @@
+---
+title: "Custom schemas and prompts"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Custom schemas and prompts}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+This vignette covers more advanced usage: simplifying the schema, narrowing the prompt, and targeting a fit-for-purpose export for a specific surveillance task.
+
+## Why customize?
+
+Local models often perform better when the requested schema is smaller and more specific.
+
+For example, if you only need disease, onset, exposures, and contacts, a narrower schema can improve extraction consistency.
+
+## Build a smaller schema
+
+```{r}
+library(epistract)
+
+mini_case_type <- ellmer::type_object(
+  "Minimal enteric disease extraction schema.",
+  case_name = ellmer::type_string("Case name as reported.", required = FALSE),
+  disease = ellmer::type_string("Disease named in the report.", required = FALSE),
+  onset_date = ellmer::type_string("Onset date in YYYY-MM-DD when possible.", required = FALSE),
+  symptoms = ellmer::type_array(
+    ellmer::type_string("One symptom."),
+    description = "Reported symptoms.",
+    required = FALSE
+  ),
+  exposures = ellmer::type_array(
+    ellmer::type_string("One possible exposure."),
+    description = "Possible food, venue, or event exposures.",
+    required = FALSE
+  ),
+  contacts = ellmer::type_array(
+    ellmer::type_string("One relevant contact."),
+    description = "Relevant household or close contacts.",
+    required = FALSE
+  )
+)
+
+mini_case_type
+```
+
+## Use a targeted prompt
+
+```{r}
+mini_prompt <- function(text) {
+  paste(
+    "Extract only the case name, disease, onset, symptoms, exposures, and contacts.",
+    "Do not include any extra fields.",
+    "Use missing values when the text is unclear.",
+    text,
+    sep = "\n\n"
+  )
+}
+```
+
+## Run the narrower extraction
+
+```{r, eval = FALSE}
+llm <- llm(model = "gemma3:4b")
+
+mini_out <- extract_epi_data(
+  reports,
+  input_col = text,
+  type = mini_case_type,
+  llm = llm,
+  prompt = mini_prompt
+)
+```
+
+## Export only the columns you need
+
+```{r}
+mini_export <- tibble::tibble(
+  case_name = "Priya Sharma",
+  symptoms = list(c("diarrhoea", "abdominal cramping")),
+  exposures = list(c("Cluck & Go chicken wrap", "family barbecue"))
+)
+
+prepare_epi_export(mini_export)
+```
+
+## Summary
+
+Increase complexity gradually:
+
+1. start with the default `type_epi_case_report()` schema
+2. inspect the extracted columns and list-columns
+3. if needed, reduce the schema and tighten the prompt
+4. export with `prepare_epi_export()` or `write_epi_delim()`

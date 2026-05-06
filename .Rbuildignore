@@ -1,0 +1,7 @@
+^\.github($|/)
+^\.buildcheck($|/)
+^\.pixi($|/)
+^\.gitignore$
+^README\.md$
+^pixi\.lock$
+^pixi\.toml$

@@ -1,0 +1,34 @@
+Package: epistract
+Title: Extract Epidemiological Data from Unstructured Text
+Version: 0.0.0.9000
+Authors@R:
+    person("William", "Wirth", , "william@example.com", role = c("aut", "cre"))
+Author: William Wirth [aut, cre]
+Maintainer: William Wirth <william@example.com>
+Description: Tools for extracting structured epidemiological fields from
+    unstructured text with local language models. The package primarily
+    targets single case investigation reports such as enteric disease case
+    interviews with laboratory results, symptom timelines, exposure
+    histories, travel history, and contact information. It wraps 'ellmer'
+    structured outputs, adds epidemiology-specific type definitions,
+    helpers for working with local Ollama models, and a dataframe-oriented
+    extraction workflow that flattens nested outputs into dot-notated
+    column names.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Depends:
+    R (>= 4.2.0)
+Imports:
+    ellmer,
+    ollamar,
+    rlang,
+    tibble,
+    vctrs
+Suggests:
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Config/testthat/edition: 3

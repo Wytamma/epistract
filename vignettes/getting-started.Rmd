@@ -1,0 +1,96 @@
+---
+title: "Getting started with epistract"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started with epistract}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+`epistract` extracts structured epidemiological fields from free-text case reports using `ellmer` structured outputs and a local Ollama model.
+
+This first vignette shows the smallest useful workflow:
+
+1. create a small table of reports
+2. create an LLM client with `llm()`
+3. extract structured fields with `extract_epi_data()`
+4. inspect the flattened output
+
+## Minimal input
+
+```{r}
+library(epistract)
+
+reports <- tibble::tibble(
+  case_id = 1:2,
+  text = c(
+    paste(
+      "Case 1: Priya Sharma.",
+      "Test Result: Positive for Salmonella.",
+      "Case notified via laboratory report on 14 March 2024.",
+      "Initial interview conducted 15 March.",
+      "Onset of diarrhoea and abdominal cramping late evening of 12 March."
+    ),
+    paste(
+      "Case 2: Liam O'Connor.",
+      "Positive stool culture for Salmonella notified 16 March 2024.",
+      "Interview completed same day.",
+      "Onset sometime early on the 14th with nausea, vomiting, and later diarrhoea."
+    )
+  )
+)
+
+reports
+```
+
+## Create the model client
+
+```{r, eval = FALSE}
+llm <- llm(model = "gemma3:4b")
+```
+
+## Extract structured fields
+
+```{r, eval = FALSE}
+out <- extract_epi_data(
+  reports,
+  input_col = text,
+  type = type_epi_case_report(),
+  llm = llm
+)
+```
+
+The default schema is already tuned for single case investigation records, so a basic call often works well as a starting point.
+
+## Expected output shape
+
+The extraction result is a flat tibble with dot-notated columns for nested fields.
+
+```{r}
+example_names <- c(
+  "case_id",
+  "text",
+  "case.case_status",
+  "case.patient.full_name",
+  "notification.disease",
+  "notification.test_result",
+  "interview.interview_date",
+  "illness.onset_date",
+  "illness.symptoms"
+)
+
+example_names
+```
+
+## Next steps
+
+- Use `type_epi_case_report()` for case interview narratives.
+- Use `prepare_epi_export()` before writing CSV files.
+- Move to the next vignette for more realistic exposure histories and repeated nested fields.
