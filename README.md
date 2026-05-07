@@ -71,11 +71,9 @@ results$symptoms
 # [[1]][[1]]
 # [1] "diarrhoea"          "abdominal cramping"
 
-
 # [[2]]
 # [[2]][[1]]
 # character(0)
-
 
 # [[3]]
 # [[3]][[1]]
