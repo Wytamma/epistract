@@ -28,16 +28,22 @@ epi_default_prompt <- function(text) {
 #' @param llm An LLM object, typically created with [llm()].
 #' @param prompt Either a function taking one text value and returning a prompt,
 #'   or a length-1 character string containing a single `%s` placeholder.
+#' @param postprocess Optional named list of post-processing functions keyed by
+#'   flattened output column name. These are merged with any processors attached
+#'   to the supplied `type`.
 #' @param names_sep Separator used when flattening nested outputs.
 #' @param keep_input Should the original input column be kept?
 #'
-#' @return A tibble with extracted columns appended.
+#' @return A tibble with extracted columns appended. Post-processing errors are
+#'   attached as an `epistract_postprocess_errors` attribute and can be
+#'   retrieved with [postprocess_errors()].
 #' @export
 extract_epi_data <- function(data,
                              input_col,
                              type = type_epi_case_report(),
                              llm,
                              prompt = epi_default_prompt,
+                             postprocess = NULL,
                              names_sep = ".",
                              keep_input = TRUE) {
   if (!is.data.frame(data)) {
@@ -66,13 +72,29 @@ extract_epi_data <- function(data,
   }
 
   extracted <- get("flatten_epi_columns", mode = "function")(extracted, names_sep = names_sep)
+  extracted <- get("simplify_scalar_list_columns", mode = "function")(
+    extracted,
+    repeated_prefixes = get("repeated_prefixes_from_type", mode = "function")(type, names_sep = names_sep),
+    names_sep = names_sep
+  )
 
-  if (isTRUE(keep_input)) {
+  postprocess_map <- get("merge_postprocess_maps", mode = "function")(
+    get("collect_type_postprocessors", mode = "function")(type, names_sep = names_sep),
+    postprocess = postprocess
+  )
+  postprocessed <- get("apply_postprocessors", mode = "function")(extracted, postprocess = postprocess_map)
+  extracted <- postprocessed$data
+
+  result <- if (isTRUE(keep_input)) {
     tibble::as_tibble(cbind(data, extracted, stringsAsFactors = FALSE))
   } else {
     keep <- names(data) != input_col
     tibble::as_tibble(cbind(data[keep], extracted, stringsAsFactors = FALSE))
   }
+
+  attr(result, "epistract_postprocess_errors") <- postprocessed$errors
+
+  result
 }
 
 build_prompts <- function(text, prompt) {

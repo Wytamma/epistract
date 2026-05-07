@@ -10,6 +10,7 @@ extract_epi_data(
   type = type_epi_case_report(),
   llm,
   prompt = epi_default_prompt,
+  postprocess = NULL,
   names_sep = ".",
   keep_input = TRUE
 )
@@ -26,12 +27,18 @@ extract_epi_data(
 \item{prompt}{Either a function taking one text value and returning a prompt,
 or a length-1 character string containing a single \verb{\%s} placeholder.}
 
+\item{postprocess}{Optional named list of post-processing functions keyed by
+flattened output column name. These are merged with any processors attached
+to the supplied \code{type}.}
+
 \item{names_sep}{Separator used when flattening nested outputs.}
 
 \item{keep_input}{Should the original input column be kept?}
 }
 \value{
-A tibble with extracted columns appended.
+A tibble with extracted columns appended. Post-processing errors are
+attached as an \code{epistract_postprocess_errors} attribute and can be
+retrieved with \code{\link[=postprocess_errors]{postprocess_errors()}}.
 }
 \description{
 Applies \code{ellmer::parallel_chat_structured()} to a target text column in a data

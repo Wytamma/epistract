@@ -12,6 +12,7 @@ llm(
     "Only return values grounded in the supplied text.",
     "Use missing values when information is absent."),
   base_url = Sys.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+  params = ellmer::params(temperature = 0),
   check_connection = TRUE,
   pull = FALSE,
   ...
@@ -23,6 +24,9 @@ llm(
 \item{system_prompt}{System prompt sent to the model.}
 
 \item{base_url}{Ollama server URL.}
+
+\item{params}{Model generation parameters passed to \code{ellmer::chat_ollama()}.
+Defaults to \code{ellmer::params(temperature = 0)} for more stable extraction.}
 
 \item{check_connection}{Should the local Ollama server be checked first?}
 

@@ -6,6 +6,8 @@
 #' @param model Ollama model name.
 #' @param system_prompt System prompt sent to the model.
 #' @param base_url Ollama server URL.
+#' @param params Model generation parameters passed to `ellmer::chat_ollama()`.
+#'   Defaults to `ellmer::params(temperature = 0)` for more stable extraction.
 #' @param check_connection Should the local Ollama server be checked first?
 #' @param pull Should the model be pulled with `ollamar::pull()` before use?
 #' @param ... Additional arguments passed to `ellmer::chat_ollama()`.
@@ -20,6 +22,7 @@ llm <- function(model = "gemma3:4b",
                   "Use missing values when information is absent."
                 ),
                 base_url = Sys.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+                params = ellmer::params(temperature = 0),
                 check_connection = TRUE,
                 pull = FALSE,
                 ...) {
@@ -50,6 +53,7 @@ llm <- function(model = "gemma3:4b",
     model = model,
     system_prompt = system_prompt,
     base_url = base_url,
+    params = params,
     ...
   )
 }

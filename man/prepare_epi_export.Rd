@@ -9,7 +9,7 @@ prepare_epi_export(
   vector_sep = "; ",
   field_sep = " = ",
   row_sep = " | ",
-  empty = NA_character_
+  empty = ""
 )
 }
 \arguments{
@@ -22,7 +22,9 @@ prepare_epi_export(
 \item{row_sep}{Separator used between rows when a list element contains a data
 frame.}
 
-\item{empty}{Value used for empty vectors or missing values.}
+\item{empty}{Value used for empty vectors or missing values. Defaults to an
+empty string so missing values are written as empty cells in delimited
+exports.}
 }
 \value{
 A tibble with no list-columns.

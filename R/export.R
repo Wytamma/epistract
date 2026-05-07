@@ -9,7 +9,9 @@
 #' @param field_sep Separator used between named fields in nested objects.
 #' @param row_sep Separator used between rows when a list element contains a data
 #'   frame.
-#' @param empty Value used for empty vectors or missing values.
+#' @param empty Value used for empty vectors or missing values. Defaults to an
+#'   empty string so missing values are written as empty cells in delimited
+#'   exports.
 #'
 #' @return A tibble with no list-columns.
 #' @export
@@ -17,7 +19,7 @@ prepare_epi_export <- function(data,
                                vector_sep = "; ",
                                field_sep = " = ",
                                row_sep = " | ",
-                               empty = NA_character_) {
+                               empty = "") {
   if (!is.data.frame(data)) {
     rlang::abort("`data` must be a data frame or tibble.")
   }
@@ -36,6 +38,8 @@ prepare_epi_export <- function(data,
         empty = empty,
         USE.NAMES = FALSE
       )
+    } else if (is.character(out[[name]])) {
+      out[[name]] <- normalize_export_atomic(out[[name]], empty = empty)
     }
   }
 
@@ -48,6 +52,8 @@ prepare_epi_export <- function(data,
 #'   [extract_epi_data()].
 #' @param file Output file path.
 #' @param sep Field separator passed to [utils::write.table()].
+#' @param na String to use for missing values when writing the delimited file.
+#'   Defaults to an empty string so missing values are written as blank cells.
 #' @param row.names Should row names be written?
 #' @param qmethod Quoting method passed to [utils::write.table()].
 #' @param ... Additional arguments passed to [utils::write.table()].
@@ -57,6 +63,7 @@ prepare_epi_export <- function(data,
 write_epi_delim <- function(data,
                             file,
                             sep = ",",
+                            na = "",
                             row.names = FALSE,
                             qmethod = "double",
                             ...) {
@@ -66,6 +73,7 @@ write_epi_delim <- function(data,
     export_data,
     file = file,
     sep = sep,
+    na = na,
     row.names = row.names,
     qmethod = qmethod,
     ...
@@ -78,7 +86,7 @@ format_epi_export_value <- function(x,
                                     vector_sep = "; ",
                                     field_sep = " = ",
                                     row_sep = " | ",
-                                    empty = NA_character_) {
+                                    empty = "") {
   if (is.null(x) || length(x) == 0L) {
     return(empty)
   }
@@ -105,6 +113,7 @@ format_epi_export_value <- function(x,
       empty = empty,
       USE.NAMES = FALSE
     )
+    values[is_missing_export_value(values)] <- empty
     return(paste(names(x), values, sep = field_sep, collapse = vector_sep))
   }
 
@@ -119,7 +128,7 @@ format_epi_export_value <- function(x,
       empty = empty,
       USE.NAMES = FALSE
     )
-    values <- values[!is.na(values)]
+    values <- values[!is_missing_export_value(values)]
 
     if (length(values) == 0L) {
       return(empty)
@@ -129,11 +138,21 @@ format_epi_export_value <- function(x,
   }
 
   values <- as.character(x)
-  values <- values[!is.na(values)]
+  values <- values[!is_missing_export_value(values)]
 
   if (length(values) == 0L) {
     return(empty)
   }
 
   paste(values, collapse = vector_sep)
+}
+
+normalize_export_atomic <- function(x, empty = NA_character_) {
+  out <- as.character(x)
+  out[is_missing_export_value(out)] <- empty
+  out
+}
+
+is_missing_export_value <- function(x) {
+  is.na(x) | trimws(x) == ""
 }

@@ -18,7 +18,6 @@ install.packages("remotes")
 remotes::install_github("wytamma/epistract", dependencies = TRUE)
 ```
 
-
 ## Example
 
 ```r
@@ -60,26 +59,39 @@ reports <- tibble::tibble(
   )
 )
 
-out <- extract_epi_data(
+results <- extract_epi_data(
   reports,
   input_col = text,
-  type = type_epi_case_report(),
-  llm = llm(model = "gemma3:4b")
+  type = type_epi_illness(),
+  llm = llm(model = "nuextract:3.8b")
 )
 
-names(out)
-# [1] "case_id" "text" "case.case_status" "case.patient.full_name"
-# [5] "notification.disease" "notification.test_result"
-# [7] "illness.onset_date" "illness.onset_time_text" ...
+results$symptoms
+# [[1]]
+# [[1]][[1]]
+# [1] "diarrhoea"          "abdominal cramping"
 
-write_epi_delim(out, "epistract.tsv", sep = "\t")
+
+# [[2]]
+# [[2]][[1]]
+# character(0)
+
+
+# [[3]]
+# [[3]][[1]]
+# [1] "diarrhoea"            "fatigue"              "abdominal discomfort"
+
+
+write_epi_delim(results, "epistract.tsv", sep = "\t")
 ```
+
+`llm()` defaults to `ellmer::params(temperature = 0)`. To override it explicitly, pass for example `params = ellmer::params(temperature = 0.2)`.
 
 ## Intended workflow
 
 Use `type_epi_case_report()` for case interview narratives and `extract_epi_data()` to turn each free-text record into analysis-ready columns. Nested objects flatten with dot notation, while repeated sections such as `exposures` and `contacts` remain list-columns.
 
-For CSV or TSV export, first convert list-columns with `prepare_epi_export()` or use `write_epi_delim()`.
+For CSV or TSV export, first convert list-columns with `prepare_epi_export()` or use `write_epi_delim()`. By default, missing values of all column types are written as empty cells rather than `NA`.
 
 ## Case-focused fields
 

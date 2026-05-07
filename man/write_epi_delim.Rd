@@ -8,6 +8,7 @@ write_epi_delim(
   data,
   file,
   sep = ",",
+  na = "",
   row.names = FALSE,
   qmethod = "double",
   ...
@@ -20,6 +21,9 @@ write_epi_delim(
 \item{file}{Output file path.}
 
 \item{sep}{Field separator passed to \code{\link[utils:write.table]{utils::write.table()}}.}
+
+\item{na}{String to use for missing values when writing the delimited file.
+Defaults to an empty string so missing values are written as blank cells.}
 
 \item{row.names}{Should row names be written?}
 

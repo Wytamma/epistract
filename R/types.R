@@ -74,6 +74,61 @@ type_epi_certainty <- function(description = "How certain the reported detail is
   )
 }
 
+#' Epidemiology date field with strict post-processing
+#'
+#' Creates a string field for dates that also carries a strict post-processing
+#' parser. The parser expects `YYYY-MM-DD` input, returns `Date` values when
+#' parsing succeeds, and records an error during extraction when parsing fails.
+#'
+#' @param description Field description supplied to the model.
+#' @param required Should the field be required?
+#' @param format Date format expected during post-processing.
+#'
+#' @return An `ellmer` string type with attached post-processing metadata.
+#' @export
+#'
+#' @examples
+#' x <- type_epi_date("Notification date in YYYY-MM-DD format when possible.")
+type_epi_date <- function(description = "Date in YYYY-MM-DD format.",
+                          required = FALSE,
+                          format = "%Y-%m-%d") {
+  type <- ellmer::type_string(description, required = required)
+  type_with_postprocess(
+    type,
+    function(value) postprocess_date_strict(value, format = format)
+  )
+}
+
+#' Epidemiology partial date field
+#'
+#' Creates a date-like object split into `year`, `month`, and `day` components
+#' so incomplete dates can be captured without forcing a full ISO date. This is
+#' useful when reports mention only part of a date, such as a day and month but
+#' no year.
+#'
+#' @param description Field description supplied to the model.
+#' @param required Should the object be required?
+#'
+#' @return An `ellmer` object type.
+#' @export
+#'
+#' @examples
+#' x <- type_epi_partial_date("Notification date split into year, month, and day.")
+type_epi_partial_date <- function(description = "Date split into year, month, and day components.",
+                                  required = FALSE) {
+  ellmer::type_object(
+    description,
+    year = ellmer::type_integer("Four-digit year if reported; leave missing if unknown.", required = FALSE),
+    month = ellmer::type_integer("Month number from 1 to 12 if reported.", required = FALSE),
+    day = ellmer::type_integer("Day of month from 1 to 31 if reported.", required = FALSE),
+    date_text = ellmer::type_string(
+      "Original date wording when the full date cannot be normalized confidently.",
+      required = FALSE
+    ),
+    .required = required
+  )
+}
+
 #' Geographic location type for epidemiological extraction
 #'
 #' @param required Should the object be required?
@@ -143,8 +198,14 @@ type_epi_notification <- function(required = FALSE) {
     specimen = ellmer::type_string("Specimen type such as stool, blood, or swab.", required = FALSE),
     notification_source = ellmer::type_string("How the case was notified, such as laboratory report.", required = FALSE),
     laboratory = ellmer::type_string("Laboratory or provider name.", required = FALSE),
-    notification_date = ellmer::type_string("Notification date in YYYY-MM-DD format when possible.", required = FALSE),
-    confirmation_date = ellmer::type_string("Date the positive or confirming test was reported in YYYY-MM-DD format when possible.", required = FALSE),
+    notification_date = type_epi_partial_date(
+      "Notification date split into year, month, and day when possible.",
+      required = FALSE
+    ),
+    confirmation_date = type_epi_partial_date(
+      "Date the positive or confirming test was reported, split into year, month, and day when possible.",
+      required = FALSE
+    ),
     .required = required
   )
 }
@@ -158,7 +219,7 @@ type_epi_notification <- function(required = FALSE) {
 type_epi_interview <- function(required = FALSE) {
   ellmer::type_object(
     "Case interview details.",
-    interview_date = ellmer::type_string("Interview date in YYYY-MM-DD format when possible.", required = FALSE),
+    interview_date = type_epi_partial_date("Interview date split into year, month, and day when possible.", required = FALSE),
     interview_status = ellmer::type_string("Interview completion status such as completed or delayed.", required = FALSE),
     interview_delay_reason = ellmer::type_string("Reason for delayed or incomplete interview.", required = FALSE),
     .required = required
@@ -174,22 +235,21 @@ type_epi_interview <- function(required = FALSE) {
 type_epi_illness <- function(required = FALSE) {
   ellmer::type_object(
     "Symptom onset and illness details for an individual case.",
-    onset_date = ellmer::type_string("Symptom onset date in YYYY-MM-DD format when possible.", required = FALSE),
+    onset_date = type_epi_partial_date("Symptom onset date split into year, month, and day.", required = FALSE),
     onset_time_text = ellmer::type_string("Free-text onset timing exactly or nearly exactly as reported.", required = FALSE),
     onset_precision = ellmer::type_enum(
       c("exact", "approximate", "unclear", "unknown"),
       "Precision of the symptom onset timing.",
-      required = FALSE
+      required = TRUE
     ),
     symptoms = ellmer::type_array(
       ellmer::type_string("One symptom or sign."),
       description = "Brief list of reported symptoms or signs.",
-      required = FALSE
+      required = TRUE
     ),
     fever_measured = type_epi_yes_no_unknown("Whether fever was measured with a recorded temperature.", required = FALSE),
-    symptom_notes = ellmer::type_string("Extra free-text symptom detail not captured elsewhere.", required = FALSE),
-    hospitalized = type_epi_yes_no_unknown("Whether the case was hospitalized.", required = FALSE),
-    outcome = type_epi_outcome(required = FALSE),
+    hospitalized = type_epi_yes_no_unknown("Whether the case was hospitalized.", required = TRUE),
+    outcome = type_epi_outcome(required = TRUE),
     .required = required
   )
 }
@@ -208,7 +268,7 @@ type_epi_exposure <- function(required = FALSE) {
       "Type of exposure event.",
       required = FALSE
     ),
-    exposure_date = ellmer::type_string("Exposure date in YYYY-MM-DD format when possible.", required = FALSE),
+    exposure_date = type_epi_partial_date("Exposure date split into year, month, and day when possible.", required = FALSE),
     exposure_date_text = ellmer::type_string("Free-text exposure date or timing if exact date is unclear.", required = FALSE),
     venue_name = ellmer::type_string("Venue, store, stall, or event name.", required = FALSE),
     location = type_epi_location(required = FALSE),
@@ -252,9 +312,12 @@ type_epi_case <- function(required = FALSE) {
     "Case-level epidemiological details.",
     case_status = type_epi_case_status(required = FALSE),
     patient = type_epi_person(required = FALSE),
-    onset_date = ellmer::type_string("Symptom onset date in YYYY-MM-DD format when possible.", required = FALSE),
-    report_date = ellmer::type_string("Date the case was reported in YYYY-MM-DD format when possible.", required = FALSE),
-    confirmation_date = ellmer::type_string("Laboratory confirmation date in YYYY-MM-DD format when possible.", required = FALSE),
+    onset_date = type_epi_partial_date("Symptom onset date split into year, month, and day when possible.", required = FALSE),
+    report_date = type_epi_partial_date("Date the case was reported, split into year, month, and day when possible.", required = FALSE),
+    confirmation_date = type_epi_partial_date(
+      "Laboratory confirmation date split into year, month, and day when possible.",
+      required = FALSE
+    ),
     outcome = type_epi_outcome(required = FALSE),
     hospitalized = type_epi_yes_no_unknown("Whether the case was hospitalized.", required = FALSE),
     symptoms = ellmer::type_array(
@@ -327,8 +390,8 @@ type_epi_outbreak <- function(required = TRUE) {
     event = type_epi_event(required = FALSE),
     location = type_epi_location(required = FALSE),
     counts = type_epi_counts(required = FALSE),
-    first_case_date = ellmer::type_string("Earliest case date in YYYY-MM-DD format when possible.", required = FALSE),
-    latest_case_date = ellmer::type_string("Latest case date in YYYY-MM-DD format when possible.", required = FALSE),
+    first_case_date = type_epi_partial_date("Earliest case date split into year, month, and day when possible.", required = FALSE),
+    latest_case_date = type_epi_partial_date("Latest case date split into year, month, and day when possible.", required = FALSE),
     interventions = ellmer::type_array(
       ellmer::type_string("One public health measure."),
       description = "Short list of interventions or control measures.",
